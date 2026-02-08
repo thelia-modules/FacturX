@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <fullnamespace>FacturX\FacturX</fullnamespace>
+    <descriptive locale="fr_FR">
+        <title>Factur-X</title>
+        <description>Génère des factures PDF/A-3 conformes Factur-X (EN16931) pour la facturation électronique</description>
+    </descriptive>
+    <descriptive locale="en_US">
+        <title>Factur-X</title>
+        <description>Generates PDF/A-3 invoices compliant with Factur-X (EN16931) for electronic invoicing</description>
+    </descriptive>
+    <version>1.0.0</version>
+    <author>
+        <name>OpenStudio</name>
+        <email>anoziere@openstuio.fr</email>
+    </author>
+    <type>classic</type>
+    <thelia>2.5.0</thelia>
+    <stability>alpha</stability>
+</module>

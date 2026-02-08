@@ -1,0 +1,66 @@
+<div class="row">
+    <div class="col-md-12 general-block-decorator">
+
+        <div class="row">
+            <div class="col-md-12 title title-without-tabs">
+                {intl d='facturx' l="Configuration Factur-X"}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    {intl d='facturx' l="Ce module transforme vos factures PDF en PDF/A-3 conformes Factur-X (EN16931) pour la facturation électronique."}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <div class="row">
+                <div class="col-md-12">
+
+                    {form name="facturx_configuration"}
+
+                        <form action="{url path="/admin/facturx/configure"}" method="post">
+
+                            {include
+                                file = "includes/inner-form-toolbar.html"
+                                hide_submit_buttons = false
+                                page_url  = {url path="/admin/module/FacturX"}
+                                close_url = {url path="/admin/modules"}
+                            }
+
+                            {form_hidden_fields}
+                            {render_form_field field="success_url" value={url path="/admin/module/FacturX"}}
+                            {render_form_field field="error_url" value={url path="/admin/module/FacturX"}}
+
+                            {if $form_error}
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="alert alert-danger">{$form_error_message}</div>
+                                    </div>
+                                </div>
+                            {/if}
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {render_form_field field="facturx_siret"}
+                                </div>
+                                <div class="col-md-6">
+                                    {render_form_field field="facturx_tva_intracommunautaire"}
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {render_form_field field="facturx_is_enabled"}
+                                </div>
+                            </div>
+
+                        </form>
+                    {/form}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
