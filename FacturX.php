@@ -32,7 +32,7 @@ class FacturX extends BaseModule
         $defaults = [
             self::CONFIG_SIRET => '',
             self::CONFIG_TVA_INTRACOM => '',
-            self::CONFIG_IS_ENABLED => '0',
+            self::CONFIG_IS_ENABLED => '1',
             self::CONFIG_STORAGE_PATH => THELIA_LOCAL_DIR.'/media/documents/facturx/',
         ];
 

@@ -15,6 +15,6 @@
         <email>anoziere@openstuio.fr</email>
     </author>
     <type>classic</type>
-    <thelia>2.5.0</thelia>
+    <thelia>2.5.5</thelia>
     <stability>alpha</stability>
 </module>
