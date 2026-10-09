@@ -18,13 +18,15 @@ use FacturX\Service\Configuration;
 use FacturX\Service\InvoiceArchive;
 use FacturX\Service\InvoiceNumberResolver;
 use FacturX\Service\InvoiceRenderer;
+use FacturX\Service\RenderingRequest;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Thelia\Core\Event\Order\OrderEvent;
 use Thelia\Core\Event\TheliaEvents;
 use Thelia\Log\Tlog;
 use Thelia\Mailer\MailerFactory;
 use Thelia\Model\ConfigQuery;
+use Thelia\Model\Customer;
+use Thelia\Model\Order;
 
 final readonly class InvoiceMailListener
 {
@@ -36,7 +38,7 @@ final readonly class InvoiceMailListener
         private InvoiceArchive $archive,
         private InvoiceRenderer $renderer,
         private MailerFactory $mailer,
-        private RequestStack $requestStack,
+        private RenderingRequest $renderingRequest,
     ) {
     }
 
@@ -63,12 +65,11 @@ final readonly class InvoiceMailListener
             return;
         }
 
-        if (null === $this->requestStack->getCurrentRequest()) {
-            Tlog::getInstance()->warning(\sprintf('FacturX: the invoice of order %s was not mailed, there is no request to render it in.', $order->getRef()));
+        $this->renderingRequest->during($order->getLang(), fn () => $this->mail($order, $number, $issueDate, $customer));
+    }
 
-            return;
-        }
-
+    private function mail(Order $order, string $number, \DateTimeInterface $issueDate, Customer $customer): void
+    {
         try {
             $pdf = $this->renderer->render($order);
         } catch (\Throwable $throwable) {

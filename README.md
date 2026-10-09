@@ -60,7 +60,7 @@ Settings are under **Back-office > Modules > Factur-X**.
 - Amounts are written in the currency of the order. The VAT amount in the accounting currency is not written.
 - The reasons printed on the allowance and charge lines and the exemption reasons are in French.
 - The XSD of the profile is validated when the file is produced. The business rules were checked on issued invoices with Mustang 2.26.0 (EN 16931 and French Flux 2 Schematron): no error, and the file is a valid PDF/A-3b. What remains are warnings of the French rules, not written yet: the electronic addresses of the seller and of the buyer (BT-34, BT-49) and the legal mentions on recovery costs, late payment penalties and discount (BR-FR-05). They are left out on purpose: the electronic address of the buyer is personal data the profile does not require, and the mentions belong to the French rules, not to the EN 16931 profile. The delivery block carries the country of the delivery address, nothing more. A seller without a SIRET (`store_siret`) also gets a BR-FR-10 warning.
-- The invoice mail is only sent from a request: a status change made from the command line is logged and the mail is not sent.
+- A status change made from the command line sends the invoice mail too: the module renders it inside a temporary request in the language of the order.
 
 ## Tests
 

@@ -29,6 +29,7 @@ use FacturX\Service\InvoiceArchive;
 use FacturX\Service\InvoiceDataBuilder;
 use FacturX\Service\InvoiceNumberResolver;
 use FacturX\Service\PdfANormalizer;
+use FacturX\Service\RenderingRequest;
 use FacturX\Tests\Support\FixedInvoiceRenderer;
 use FacturX\Tests\Support\OrderBuilder;
 use FacturX\Tests\Support\RecordingMailer;
@@ -226,6 +227,19 @@ final class FacturXGenerationTest extends IntegrationTestCase
         self::assertSame('PDF-BYTES', $mailer->sent[0]->getAttachments()[0]->getBody());
     }
 
+    public function testTheInvoiceIsMailedFromTheCommandLineInsideARequestThatIsRemovedAfterwards(): void
+    {
+        $order = $this->twoRatesOrder();
+        $mailer = new RecordingMailer();
+
+        $this->mailListener($mailer, 'PDF-BYTES', request: false)->onOrderStatusUpdate(new OrderEvent($order));
+
+        self::assertCount(1, $mailer->sent);
+        self::assertTrue($mailer->created[0]['request'], 'The message was rendered without a request.');
+        self::assertNull($mailer->requests->getCurrentRequest());
+        self::assertSame('PDF-BYTES', $mailer->sent[0]->getAttachments()[0]->getBody());
+    }
+
     public function testNothingIsMailedWhenTheShopDidNotAskForIt(): void
     {
         $mailer = new RecordingMailer();
@@ -291,11 +305,14 @@ final class FacturXGenerationTest extends IntegrationTestCase
         );
     }
 
-    private function mailListener(RecordingMailer $mailer, string $pdf, bool $mail = true): InvoiceMailListener
+    private function mailListener(RecordingMailer $mailer, string $pdf, bool $mail = true, bool $request = true): InvoiceMailListener
     {
         $configuration = new StubConfiguration($this->storage, mail: $mail);
         $requests = new RequestStack();
-        $requests->push(\Symfony\Component\HttpFoundation\Request::create('/'));
+        if ($request) {
+            $requests->push(\Symfony\Component\HttpFoundation\Request::create('/'));
+        }
+        $mailer->requests = $requests;
 
         return new InvoiceMailListener(
             $configuration,
@@ -303,7 +320,7 @@ final class FacturXGenerationTest extends IntegrationTestCase
             new InvoiceArchive($configuration),
             new FixedInvoiceRenderer($pdf),
             $mailer,
-            $requests,
+            new RenderingRequest($requests),
         );
     }
 

@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace FacturX\Tests\Support;
 
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Mime\Email;
 use Thelia\Mailer\MailerFactory;
 
@@ -22,8 +23,10 @@ final class RecordingMailer extends MailerFactory
     /** @var list<Email> */
     public array $sent = [];
 
-    /** @var list<array{code: string, parameters: array<string, mixed>, locale: ?string}> */
+    /** @var list<array{code: string, parameters: array<string, mixed>, locale: ?string, request: bool}> */
     public array $created = [];
+
+    public ?RequestStack $requests = null;
 
     public function __construct()
     {
@@ -31,7 +34,7 @@ final class RecordingMailer extends MailerFactory
 
     public function createEmailMessage(string $messageCode, array $from, array $to, array $messageParameters = [], ?string $locale = null, array $cc = [], array $bcc = [], array $replyTo = []): Email
     {
-        $this->created[] = ['code' => $messageCode, 'parameters' => $messageParameters, 'locale' => $locale];
+        $this->created[] = ['code' => $messageCode, 'parameters' => $messageParameters, 'locale' => $locale, 'request' => null !== $this->requests?->getCurrentRequest()];
 
         return (new Email())->subject($messageCode)->to(array_key_first($to))->text('body');
     }
