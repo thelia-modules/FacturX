@@ -1,0 +1,5 @@
+{{ 'Hello'|facturx_trans }},
+
+{{ 'Please find attached the invoice %invoice% for your order %order%.'|facturx_trans({'%invoice%': invoice_ref, '%order%': order_ref}) }}
+
+{{ 'The %store% team.'|facturx_trans({'%store%': config('store_name')}) }}

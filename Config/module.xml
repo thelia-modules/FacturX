@@ -9,12 +9,12 @@
         <title>Factur-X</title>
         <description>Generates PDF/A-3 invoices compliant with Factur-X (EN16931) for electronic invoicing</description>
     </descriptive>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <author>
         <name>OpenStudio</name>
         <email>anoziere@openstuio.fr</email>
     </author>
     <type>classic</type>
-    <thelia>2.5.5</thelia>
+    <thelia>3.2.0</thelia>
     <stability>alpha</stability>
 </module>

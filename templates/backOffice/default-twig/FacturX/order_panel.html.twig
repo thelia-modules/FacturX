@@ -1,0 +1,44 @@
+{% set domain = 'facturx.bo.default-twig' %}
+<div class="card mb-3" data-testid="facturx-order-panel">
+    <div class="card-header">{{ 'Factur-X invoice'|trans({}, domain) }}</div>
+    <div class="card-body">
+        {% if not enabled %}
+            <p class="mb-0">{{ 'Factur-X is switched off in the module settings.'|trans({}, domain) }}</p>
+        {% elseif not invoice_number %}
+            <p class="mb-0">{{ 'The invoice is issued when the order is paid.'|trans({}, domain) }}</p>
+        {% else %}
+            <p class="mb-2">
+                {{ 'Invoice %number%, profile %profile%'|trans({'%number%': invoice_number, '%profile%': profile}, domain) }}
+                {% if is_archived %}
+                    <span class="badge text-bg-success" data-testid="facturx-archived">{{ 'Issued and archived'|trans({}, domain) }}</span>
+                {% endif %}
+            </p>
+            {% if is_complete %}
+                <p class="mb-3" data-testid="facturx-complete">{{ 'Everything the profile needs is on the order.'|trans({}, domain) }}</p>
+            {% else %}
+                <div class="alert alert-danger" role="alert" data-testid="facturx-missing">
+                    <p class="mb-1">{{ 'The invoice cannot be issued, because:'|trans({}, domain) }}</p>
+                    <ul class="mb-0">
+                        {% for code in missing %}
+                            <li data-code="{{ code }}">{{ ('facturx.missing.' ~ code)|trans({}, domain) }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {% if not has_normalizer and not is_archived %}
+                <p class="small">{{ 'Ghostscript is not available: the invoice is only PDF/A-3 if the template embeds its fonts.'|trans({}, domain) }}</p>
+            {% endif %}
+            {% if is_complete %}
+                <div class="d-flex gap-2">
+                    <a class="btn btn-outline-primary btn-sm" href="{{ path('facturx.order.download', { order_id: order_id }) }}" data-testid="facturx-download">{{ 'Download the Factur-X invoice'|trans({}, domain) }}</a>
+                    {% if not is_archived %}
+                        <form method="post" action="{{ path('facturx.order.generate', { order_id: order_id }) }}">
+                            <input type="hidden" name="_token" value="{{ assignToken() }}">
+                            <button type="submit" class="btn btn-primary btn-sm" data-testid="facturx-generate">{{ 'Issue the invoice now'|trans({}, domain) }}</button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>

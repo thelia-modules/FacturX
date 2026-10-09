@@ -4,8 +4,10 @@
     "license": "LGPL-3.0+",
     "description": "Generates PDF/A-3 invoices compliant with Factur-X (EN16931) for electronic invoicing",
     "require": {
-        "thelia/installer": "~1.1",
-        "atgp/factur-x": "^3.0"
+        "thelia/core": "^3.2",
+        "thelia/installer": "^1.6",
+        "atgp/factur-x": "^3.5",
+        "symfony/process": "^6.4|^7.0"
     },
     "extra": {
         "installer-name": "FacturX"

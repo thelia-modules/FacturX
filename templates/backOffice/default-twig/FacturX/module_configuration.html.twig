@@ -1,0 +1,33 @@
+{% set domain = 'facturx.bo.default-twig' %}
+{% form_theme form with bo_form_themes only %}
+
+{% if not has_normalizer %}
+    <div class="alert alert-warning" role="alert">
+        {{ 'Ghostscript is not available on this server. The invoice is embedded as it is rendered: it is only a valid PDF/A-3 file if the document template uses embedded fonts only.'|trans({}, domain) }}
+    </div>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header">{{ 'Factur-X invoices'|trans({}, domain) }}</div>
+    <div class="card-body">
+        {{ form_start(form, {
+            action: path('facturx.configuration.save'),
+            method: 'post',
+            attr: { 'data-testid': 'facturx-form' },
+        }) }}
+            {{ form_row(form.facturx_profile) }}
+            <p class="small">
+                {{ 'The profile decides which data the structured invoice carries. A richer profile needs more data on the order: the back-office tells what is missing before an invoice is issued.'|trans({}, domain) }}
+            </p>
+            {{ form_row(form.facturx_is_enabled) }}
+            {{ form_row(form.facturx_send_invoice_mail) }}
+            {{ form_row(form.facturx_require_buyer_vat) }}
+            {{ form_row(form.facturx_siret) }}
+            {{ form_row(form.facturx_tva_intracommunautaire) }}
+            <p class="small">
+                {{ 'An invoice is stored the first time it is produced after the order is paid, and served as it was from then on: a later change of profile does not touch it. Archive folder: %path%'|trans({'%path%': storage_path}, domain) }}
+            </p>
+            <button type="submit" class="btn btn-primary">{{ 'Save'|trans({}, domain) }}</button>
+        {{ form_end(form) }}
+    </div>
+</div>

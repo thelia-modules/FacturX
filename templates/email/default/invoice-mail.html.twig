@@ -1,0 +1,14 @@
+{% extends "email-layout.html.twig" %}
+
+{% block browser %}{% endblock %}
+{% block image_header %}{% endblock %}
+{% block pre_header %}{% endblock %}
+{% block email_title %}{% endblock %}
+
+{% block email_subject %}{{ 'Your invoice %invoice% for order %order%'|facturx_trans({'%invoice%': invoice_ref, '%order%': order_ref}) }}{% endblock %}
+
+{% block email_content %}
+    <p>{{ 'Hello'|facturx_trans }},</p>
+    <p>{{ 'Please find attached the invoice %invoice% for your order %order%.'|facturx_trans({'%invoice%': invoice_ref, '%order%': order_ref}) }}</p>
+    <p>{{ 'The %store% team.'|facturx_trans({'%store%': config('store_name')}) }}</p>
+{% endblock %}

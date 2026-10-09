@@ -15,47 +15,50 @@ declare(strict_types=1);
 namespace FacturX\Controller\Admin;
 
 use FacturX\FacturX;
+use FacturX\Form\ConfigurationForm;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Thelia\Controller\Admin\AdminController;
+use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\Security\AccessManager;
 use Thelia\Core\Security\Resource\AdminResources;
-use Thelia\Core\Template\ParserContext;
-use Thelia\Form\Exception\FormValidationException;
+use Thelia\Tools\URL;
 
-#[Route('/admin/facturx', name: 'facturx_')]
-final class ConfigurationController extends AdminController
+final class ConfigurationController extends BaseAdminController
 {
-    #[Route('/configure', name: 'configure', methods: ['POST'])]
-    public function save(ParserContext $parserContext): RedirectResponse|Response|null
+    private const CHECKBOXES = [FacturX::CONFIG_IS_ENABLED, FacturX::CONFIG_SEND_MAIL, FacturX::CONFIG_REQUIRE_BUYER_VAT];
+
+    #[Route('/admin/module/FacturX/save', name: 'facturx.configuration.save', methods: ['POST'])]
+    public function save(): Response
     {
         if (null !== $response = $this->checkAuth(AdminResources::MODULE, 'FacturX', AccessManager::UPDATE)) {
             return $response;
         }
 
-        $form = $this->createForm('facturx_configuration');
+        $form = $this->createForm(ConfigurationForm::getName());
+        $target = URL::getInstance()->absoluteUrl('/admin/module/'.FacturX::getModuleCode());
 
         try {
             $data = $this->validateForm($form)->getData();
 
-            FacturX::setConfigValue(FacturX::CONFIG_SIRET, $data['facturx_siret'] ?? '');
-            FacturX::setConfigValue(FacturX::CONFIG_TVA_INTRACOM, $data['facturx_tva_intracommunautaire'] ?? '');
-            FacturX::setConfigValue(FacturX::CONFIG_IS_ENABLED, !empty($data['facturx_is_enabled']) ? '1' : '0');
+            foreach ($data as $key => $value) {
+                if (!str_starts_with((string) $key, 'facturx_')) {
+                    continue;
+                }
 
-            return $this->generateSuccessRedirect($form);
-        } catch (FormValidationException $ex) {
-            $errorMessage = $this->createStandardFormValidationErrorMessage($ex);
-        } catch (\Exception $ex) {
-            $errorMessage = $ex->getMessage();
+                FacturX::setConfigValue($key, \in_array($key, self::CHECKBOXES, true) ? ($value ? '1' : '0') : (string) ($value ?? ''));
+            }
+        } catch (\Throwable $throwable) {
+            $this->setupFormErrorContext(
+                $this->getTranslator()->trans('Factur-X configuration', [], FacturX::MODULE_DOMAIN),
+                $throwable->getMessage(),
+                $form,
+                $throwable instanceof \Exception ? $throwable : null,
+            );
+
+            return $this->generateRedirect($target);
         }
 
-        $form->setErrorMessage($errorMessage);
-
-        $parserContext
-            ->addForm($form)
-            ->setGeneralError($errorMessage);
-
-        return $this->generateErrorRedirect($form);
+        return new RedirectResponse($target);
     }
 }

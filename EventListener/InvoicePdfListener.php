@@ -2,52 +2,77 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the Thelia package.
+ * http://www.thelia.net
+ *
+ * (c) OpenStudio <info@thelia.net>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace FacturX\EventListener;
 
-use FacturX\Service\FacturXService;
+use FacturX\Service\Configuration;
+use FacturX\Service\FacturXGenerator;
+use FacturX\Service\GenerationPermit;
+use FacturX\Service\InvoiceArchive;
+use FacturX\Service\InvoiceNumberResolver;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Thelia\Core\Event\PdfEvent;
 use Thelia\Core\Event\TheliaEvents;
-use Thelia\Log\Tlog;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\Order;
 
 final readonly class InvoicePdfListener
 {
     public function __construct(
-        private FacturXService $facturXService,
+        private Configuration $configuration,
+        private FacturXGenerator $generator,
+        private InvoiceArchive $archive,
+        private InvoiceNumberResolver $numberResolver,
+        private GenerationPermit $permit,
     ) {
     }
 
     #[AsEventListener(event: TheliaEvents::GENERATE_PDF, priority: 64)]
     public function onGeneratePdf(PdfEvent $event): void
     {
-        if (!$this->facturXService->isEnabled()) {
+        if (!$this->configuration->isEnabled() || !$event->hasPdf()) {
             return;
         }
 
-        if (!$event->hasPdf()) {
+        $order = $event->getObject();
+        if (!$order instanceof Order) {
             return;
         }
 
-        $object = $event->getObject();
-        if (!$object instanceof Order) {
+        if ($event->getTemplateName() !== ConfigQuery::read('pdf_invoice_file', 'invoice')) {
             return;
         }
 
-        $expectedTemplateName = ConfigQuery::read('pdf_invoice_file', 'invoice');
-        if ($event->getTemplateName() !== $expectedTemplateName) {
+        $number = $this->numberResolver->resolve($order);
+        $issueDate = $order->getInvoiceDate();
+        if (null === $number || null === $issueDate) {
             return;
         }
 
-        try {
-            $facturxPdf = $this->facturXService->generateFacturXPdf($event->getPdf(), $object);
-            $this->facturXService->archivePdf($facturxPdf, $object);
-            $event->setPdf($facturxPdf);
-        } catch (\Exception $e) {
-            Tlog::getInstance()->error(
-                sprintf('FacturX: erreur lors de la génération Factur-X pour la commande %s : %s', $object->getRef(), $e->getMessage())
-            );
+        $archived = $this->archive->find($number, $issueDate);
+        if (null !== $archived) {
+            $event->setPdf($archived);
+
+            return;
         }
+
+        if (!$this->permit->isOpen() && !$this->permit->isPreview()) {
+            return;
+        }
+
+        $facturX = $this->generator->generate($order, (string) $event->getPdf());
+        if ($this->permit->isOpen()) {
+            $this->archive->store($number, $issueDate, $facturX, $this->configuration->profile());
+        }
+        $event->setPdf($facturX);
     }
 }
