@@ -45,9 +45,15 @@ final readonly class InvoiceArchive
         $path = $this->path($number, $issueDate);
         $this->ensureDirectory($path);
 
-        $this->writeOnce($path, $content);
-        $this->writeOnce($path.'.sha256', hash('sha256', $content));
-        $this->writeOnce($path.'.profile', $profile->value);
+        // The fingerprint is written last and marks a finished store. Without it, whatever an
+        // interrupted store left was never served (find() ignores it) and is written again.
+        if (is_file($path.'.sha256')) {
+            return;
+        }
+
+        $this->write($path, $content);
+        $this->write($path.'.profile', $profile->value);
+        $this->write($path.'.sha256', hash('sha256', $content));
     }
 
     public function profile(string $number, \DateTimeInterface $issueDate): ?Profile
@@ -89,12 +95,8 @@ final readonly class InvoiceArchive
         }
     }
 
-    private function writeOnce(string $path, string $content): void
+    private function write(string $path, string $content): void
     {
-        if (is_file($path)) {
-            return;
-        }
-
         $temporary = $path.'.'.bin2hex(random_bytes(4)).'.tmp';
         file_put_contents($temporary, $content);
         rename($temporary, $path);
