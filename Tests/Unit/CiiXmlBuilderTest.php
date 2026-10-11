@@ -79,6 +79,26 @@ final class CiiXmlBuilderTest extends TestCase
         self::assertMatchesRegularExpression('#<ram:BuyerTradeParty>.*<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">303265045</ram:ID>.*<ram:ID schemeID="VA">BE0417497106</ram:ID>.*</ram:BuyerTradeParty>#s', $xml);
     }
 
+    public function testAFormattedSiretGivesTheSameGlobalIdAndSiren(): void
+    {
+        $buyer = new InvoiceParty('Acme', 'FR', '1 rue de Mons', '63000', 'Clermont', '303 265 045 00003', '', true);
+
+        $xml = (new CiiXmlBuilder())->build(InvoiceDataFactory::standard($buyer), Profile::En16931);
+
+        self::assertMatchesRegularExpression('#<ram:BuyerTradeParty><ram:GlobalID schemeID="0009">30326504500003</ram:GlobalID>.*<ram:ID schemeID="0002">303265045</ram:ID>.*</ram:BuyerTradeParty>#s', $xml);
+    }
+
+    public function testAnIdentifierThatIsNotASiretIsNotWritten(): void
+    {
+        $buyer = new InvoiceParty('Acme', 'FR', '1 rue de Mons', '63000', 'Clermont', '303265045', '', true);
+
+        $xml = (new CiiXmlBuilder())->build(InvoiceDataFactory::standard($buyer), Profile::En16931);
+
+        self::assertSame(1, preg_match('#<ram:BuyerTradeParty>.*</ram:BuyerTradeParty>#s', $xml, $buyerNode));
+        self::assertStringNotContainsString('schemeID="0009"', $buyerNode[0]);
+        self::assertStringNotContainsString('schemeID="0002"', $buyerNode[0]);
+    }
+
     public function testAnIntraCommunitySupplyCarriesItsExemptionReason(): void
     {
         $category = new TaxCategory('K', '0.00', 'Livraison intracommunautaire', 'VATEX-EU-IC');
