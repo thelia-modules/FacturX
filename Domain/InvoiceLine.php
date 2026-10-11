@@ -21,7 +21,7 @@ final readonly class InvoiceLine
         public string $name,
         public string $reference,
         public string $unitPrice,
-        public int $quantity,
+        public float $quantity,
         public int $netCents,
         public int $taxCents,
         public TaxCategory $category,

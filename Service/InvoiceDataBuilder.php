@@ -136,13 +136,13 @@ final readonly class InvoiceDataBuilder
                 $roundedUnitTax += round($taxAmount, 2);
             }
 
-            $quantity = (int) $orderProduct->getQuantity();
+            $quantity = (float) $orderProduct->getQuantity();
             if ($roundingOfSums) {
                 $net = Cents::from(round($quantity * $unitPrice, 2));
                 $taxed = Cents::from(round($quantity * ($unitPrice + $unitTax), 2));
             } else {
-                $net = $quantity * Cents::from(round($unitPrice, 2));
-                $taxed = $quantity * Cents::from(round($unitPrice, 2) + $roundedUnitTax);
+                $net = (int) round($quantity * Cents::from(round($unitPrice, 2)));
+                $taxed = (int) round($quantity * Cents::from(round($unitPrice, 2) + $roundedUnitTax));
             }
 
             $rate = $unitPrice > 0 ? $this->snapRate(100 * $unitTax / $unitPrice) : 0.0;

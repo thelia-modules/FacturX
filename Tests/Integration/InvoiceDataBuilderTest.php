@@ -114,6 +114,22 @@ final class InvoiceDataBuilderTest extends IntegrationTestCase
         self::assertSame($this->theliaTotal($order), $data->grandTotalCents);
     }
 
+    public function testALineSoldByAFractionalQuantityKeepsItsQuantityAndTheTotalOfTheOrder(): void
+    {
+        foreach ([ConfigQuery::ROUNDING_MODE_SUM_OF_ROUNDINGS, ConfigQuery::ROUNDING_MODE_ROUNDING_OF_SUMS] as $mode) {
+            $this->setRoundingMode($mode);
+            $order = $this->orders->paid([['price' => '10.000000', 'quantity' => 1.5, 'taxes' => ['2.000000']]]);
+
+            $data = $this->build($order);
+
+            self::assertSame(1500, $data->lines[0]->netCents, 'The line bills 1.5 units of 10.00.');
+            self::assertSame(300, $data->lines[0]->taxCents);
+            self::assertSame([], $data->inconsistencies, 'A valid order is not refused as inconsistent.');
+            self::assertSame($this->theliaTotal($order), $data->grandTotalCents);
+            self::assertStringContainsString('<ram:BilledQuantity unitCode="C62">1.5</ram:BilledQuantity>', (new CiiXmlBuilder())->build($data, Profile::En16931));
+        }
+    }
+
     public function testTheXmlOfARealOrderIsValidAgainstTheSchemaOfEveryProfile(): void
     {
         $order = $this->orders->paid(

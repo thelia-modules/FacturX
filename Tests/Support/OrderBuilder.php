@@ -31,7 +31,7 @@ final class OrderBuilder
     }
 
     /**
-     * @param list<array{price: string, quantity: int, taxes: list<string>, title?: string}> $lines
+     * @param list<array{price: string, quantity: int|float, taxes: list<string>, title?: string}> $lines
      */
     public function paid(array $lines, string $postage = '0', string $postageTax = '0', string $discount = '0', ?Customer $customer = null): Order
     {

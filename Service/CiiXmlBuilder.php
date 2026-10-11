@@ -87,7 +87,7 @@ final readonly class CiiXmlBuilder
         $this->add($document, $this->add($document, $agreement, 'ram:NetPriceProductTradePrice'), 'ram:ChargeAmount', $line->unitPrice);
 
         $delivery = $this->add($document, $item, 'ram:SpecifiedLineTradeDelivery');
-        $this->add($document, $delivery, 'ram:BilledQuantity', (string) $line->quantity, ['unitCode' => 'C62']);
+        $this->add($document, $delivery, 'ram:BilledQuantity', rtrim(rtrim(number_format($line->quantity, 4, '.', ''), '0'), '.'), ['unitCode' => 'C62']);
 
         $settlement = $this->add($document, $item, 'ram:SpecifiedLineTradeSettlement');
         $tax = $this->add($document, $settlement, 'ram:ApplicableTradeTax');
