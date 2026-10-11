@@ -100,10 +100,10 @@ final readonly class CiiXmlBuilder
     private function party(\DOMDocument $document, \DOMElement $node, InvoiceParty $party, Profile $profile, bool $isSeller): void
     {
         $carriesIdentifiers = $isSeller || $profile->carriesBuyerLegalIdentifiers();
-        $digits = preg_replace('/\D/', '', $party->siret) ?? '';
+        $siret = $party->siretDigits();
 
-        if ($carriesIdentifiers && 14 === \strlen($digits) && Profile::Minimum !== $profile) {
-            $this->add($document, $node, 'ram:GlobalID', $digits, ['schemeID' => '0009']);
+        if ($carriesIdentifiers && '' !== $siret && Profile::Minimum !== $profile) {
+            $this->add($document, $node, 'ram:GlobalID', $siret, ['schemeID' => '0009']);
         }
 
         $this->add($document, $node, 'ram:Name', $party->name);

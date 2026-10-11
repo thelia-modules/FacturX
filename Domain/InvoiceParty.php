@@ -28,10 +28,17 @@ final readonly class InvoiceParty
     ) {
     }
 
-    public function siren(): string
+    public function siretDigits(): string
     {
         $digits = preg_replace('/\D/', '', $this->siret) ?? '';
 
-        return 14 === \strlen($digits) ? substr($digits, 0, 9) : '';
+        return 14 === \strlen($digits) ? $digits : '';
+    }
+
+    public function siren(): string
+    {
+        $siret = $this->siretDigits();
+
+        return '' !== $siret ? substr($siret, 0, 9) : '';
     }
 }
