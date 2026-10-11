@@ -31,6 +31,7 @@ Personal data is limited to what the invoice needs: no e-mail address and no pho
 
 - Thelia 3 core `^3.2` (it reads the VAT exemption frozen on the order address), PHP 8.3+.
 - `atgp/factur-x` ^3.5 (installed by Composer with the module).
+- PDF template `thelia/pdf-default-template` 1.3.0 or later, which prints the same invoice number as the structured invoice. Composer refuses an older template.
 - **Ghostscript** is recommended: when `gs` and its sRGB profile are found, the PDF is converted to PDF/A-3 before the structured invoice is attached. Without it the invoice is embedded as rendered, and it is only a valid PDF/A-3 file if the document template uses embedded fonts only (the default template does). The back-office says which case applies.
 
 ## Access and limits of use
