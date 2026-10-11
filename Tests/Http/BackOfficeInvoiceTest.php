@@ -235,6 +235,40 @@ final class BackOfficeInvoiceTest extends WebIntegrationTestCase
         self::assertFileDoesNotExist($this->archivePath($order));
     }
 
+    public function testAnArchivedInvoiceIsDownloadedAfterTheShopSettingsChanged(): void
+    {
+        $order = $this->paidOrder();
+        $this->archive($order);
+        $this->loginAs($this->factory->admin());
+
+        // After the issue, the shop settings no longer satisfy the profile.
+        $this->configure(['store_vat_intracom' => '', 'store_siret' => '']);
+
+        $this->client->request('GET', '/admin/module/FacturX/order/'.$order->getId().'/download');
+
+        $response = $this->client->getResponse();
+        self::assertSame(200, $response->getStatusCode(), 'The issued invoice is served, not sent back to the order sheet.');
+        self::assertSame(self::ARCHIVED_DOCUMENT, (string) $response->getContent());
+    }
+
+    public function testAnArchivedInvoiceIsServedToAnAdministratorWhoExhaustedTheGenerationBudget(): void
+    {
+        $order = $this->paidOrder();
+        $this->archive($order);
+        $admin = $this->factory->admin();
+        $this->loginAs($admin);
+
+        $limiter = $this->getService(GenerationLimiter::class);
+        while ($limiter->allows($admin->getId())) {
+        }
+
+        $this->client->request('GET', '/admin/module/FacturX/order/'.$order->getId().'/download');
+
+        $response = $this->client->getResponse();
+        self::assertSame(200, $response->getStatusCode(), 'Serving the archive generates nothing and is not turned away.');
+        self::assertSame(self::ARCHIVED_DOCUMENT, (string) $response->getContent());
+    }
+
     public function testTheDownloadIsRefusedWithoutAnAdministratorSession(): void
     {
         $order = $this->paidOrder();

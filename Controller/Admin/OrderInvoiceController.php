@@ -17,6 +17,7 @@ namespace FacturX\Controller\Admin;
 use FacturX\Service\Configuration;
 use FacturX\Service\FacturXGenerator;
 use FacturX\Service\GenerationLimiter;
+use FacturX\Service\InvoiceArchive;
 use FacturX\Service\InvoiceNumberResolver;
 use FacturX\Service\InvoiceRenderer;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -37,15 +38,23 @@ final class OrderInvoiceController extends BaseAdminController
     private const DETAIL_ROUTE = 'admin.order.update.view';
 
     #[Route('/admin/module/FacturX/order/{order_id}/download', name: 'facturx.order.download', requirements: ['order_id' => '\d+'], methods: ['GET'])]
-    public function download(int $order_id, InvoiceRenderer $renderer, InvoiceNumberResolver $numberResolver, FacturXGenerator $generator, Configuration $configuration, GenerationLimiter $limiter, UrlGeneratorInterface $urls): Response
+    public function download(int $order_id, InvoiceRenderer $renderer, InvoiceNumberResolver $numberResolver, FacturXGenerator $generator, Configuration $configuration, InvoiceArchive $archive, GenerationLimiter $limiter, UrlGeneratorInterface $urls): Response
     {
         if (null !== $response = $this->checkAuth(AdminResources::ORDER, [], AccessManager::VIEW)) {
             return $response;
         }
 
         $order = OrderQuery::create()->findPk($order_id);
-        if (null === $order || null === $numberResolver->resolve($order)) {
+        $number = null === $order ? null : $numberResolver->resolve($order);
+        if (null === $order || null === $number) {
             return new Response('', Response::HTTP_NOT_FOUND);
+        }
+
+        // An issued invoice is served as it was archived: the settings of today do not apply to
+        // it, and serving it generates nothing.
+        $archived = $configuration->isEnabled() && null !== $order->getInvoiceDate() ? $archive->find($number, $order->getInvoiceDate()) : null;
+        if (null !== $archived) {
+            return $this->pdf($archived, $number);
         }
 
         if ($configuration->isEnabled() && !$generator->report($order)->isComplete()) {
@@ -56,10 +65,7 @@ final class OrderInvoiceController extends BaseAdminController
             return new Response('', Response::HTTP_TOO_MANY_REQUESTS);
         }
 
-        return new Response($renderer->preview($order), Response::HTTP_OK, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => \sprintf('attachment; filename="invoice-%s.pdf"', preg_replace('/[^A-Za-z0-9._-]/', '_', (string) $numberResolver->resolve($order))),
-        ]);
+        return $this->pdf($renderer->preview($order), $number);
     }
 
     #[Route('/admin/module/FacturX/order/{order_id}/generate', name: 'facturx.order.generate', requirements: ['order_id' => '\d+'], methods: ['POST'])]
@@ -91,5 +97,13 @@ final class OrderInvoiceController extends BaseAdminController
         }
 
         return $back;
+    }
+
+    private function pdf(string $content, string $number): Response
+    {
+        return new Response($content, Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => \sprintf('attachment; filename="invoice-%s.pdf"', preg_replace('/[^A-Za-z0-9._-]/', '_', $number)),
+        ]);
     }
 }
