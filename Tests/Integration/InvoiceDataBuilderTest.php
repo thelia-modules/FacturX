@@ -130,6 +130,21 @@ final class InvoiceDataBuilderTest extends IntegrationTestCase
         }
     }
 
+    public function testTwoLinesWithAHalfCentEachKeepTheTotalChargedInTheSumOfRoundingsMode(): void
+    {
+        $this->setRoundingMode(ConfigQuery::ROUNDING_MODE_SUM_OF_ROUNDINGS);
+        $order = $this->orders->paid([
+            ['price' => '9.990000', 'quantity' => 1.5, 'taxes' => ['2.000000']],
+            ['price' => '9.990000', 'quantity' => 1.5, 'taxes' => ['2.000000'], 'title' => 'Second line'],
+        ]);
+
+        $data = $this->build($order);
+
+        self::assertSame($this->theliaTotal($order), $data->grandTotalCents, 'The invoice carries the total the order was charged.');
+        self::assertSame([], $data->inconsistencies, 'A valid order is not refused as inconsistent.');
+        self::assertSame($data->lineTotalCents, array_sum(array_map(static fn ($line): int => $line->netCents, $data->lines)));
+    }
+
     public function testTheXmlOfARealOrderIsValidAgainstTheSchemaOfEveryProfile(): void
     {
         $order = $this->orders->paid(

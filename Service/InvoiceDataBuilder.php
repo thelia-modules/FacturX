@@ -121,8 +121,7 @@ final readonly class InvoiceDataBuilder
      */
     private function buildLines(Order $order, bool $roundingOfSums, bool $isExempted, bool $isShopExempted): array
     {
-        $lines = [];
-        $position = 0;
+        $rows = [];
 
         foreach ($order->getOrderProducts() as $orderProduct) {
             /** @var OrderProduct $orderProduct */
@@ -138,28 +137,62 @@ final readonly class InvoiceDataBuilder
 
             $quantity = (float) $orderProduct->getQuantity();
             if ($roundingOfSums) {
-                $net = Cents::from(round($quantity * $unitPrice, 2));
-                $taxed = Cents::from(round($quantity * ($unitPrice + $unitTax), 2));
+                $net = (float) Cents::from(round($quantity * $unitPrice, 2));
+                $taxed = (float) Cents::from(round($quantity * ($unitPrice + $unitTax), 2));
             } else {
-                $net = (int) round($quantity * Cents::from(round($unitPrice, 2)));
-                $taxed = (int) round($quantity * Cents::from(round($unitPrice, 2) + $roundedUnitTax));
+                $net = $quantity * Cents::from(round($unitPrice, 2));
+                $taxed = $quantity * Cents::from(round($unitPrice, 2) + $roundedUnitTax);
             }
 
             $rate = $unitPrice > 0 ? $this->snapRate(100 * $unitTax / $unitPrice) : 0.0;
 
+            $rows[] = [
+                'name' => (string) $orderProduct->getTitle(),
+                'reference' => (string) $orderProduct->getProductSaleElementsRef(),
+                'unitPrice' => $roundingOfSums ? $this->trimDecimals($unitPrice) : number_format(round($unitPrice, 2), 2, '.', ''),
+                'quantity' => $quantity,
+                'net' => $net,
+                'tax' => $taxed - $net,
+                'category' => $this->category($rate, $isExempted, $isShopExempted),
+            ];
+        }
+
+        [$netCents, $taxCents] = $this->lineCents(array_column($rows, 'net'), array_column($rows, 'tax'));
+
+        $lines = [];
+        foreach ($rows as $index => $row) {
             $lines[] = new InvoiceLine(
-                position: ++$position,
-                name: (string) $orderProduct->getTitle(),
-                reference: (string) $orderProduct->getProductSaleElementsRef(),
-                unitPrice: $roundingOfSums ? $this->trimDecimals($unitPrice) : number_format(round($unitPrice, 2), 2, '.', ''),
-                quantity: $quantity,
-                netCents: $net,
-                taxCents: $taxed - $net,
-                category: $this->category($rate, $isExempted, $isShopExempted),
+                position: $index + 1,
+                name: $row['name'],
+                reference: $row['reference'],
+                unitPrice: $row['unitPrice'],
+                quantity: $row['quantity'],
+                netCents: $netCents[$index],
+                taxCents: $taxCents[$index],
+                category: $row['category'],
             );
         }
 
         return $this->attachFreeLinesToDominantCategory($lines);
+    }
+
+    /**
+     * In the sum-of-roundings mode the core rounds the unit amounts but not the line totals:
+     * a fractional quantity leaves a line on a fraction of a cent, and only the order total is
+     * rounded. The lines then share the rounded totals the core charged, cent by cent. In the
+     * rounding-of-sums mode every line is already a whole number of cents and keeps it.
+     *
+     * @param list<float> $nets
+     * @param list<float> $taxes
+     *
+     * @return array{list<int>, list<int>}
+     */
+    private function lineCents(array $nets, array $taxes): array
+    {
+        $taxTotal = (int) round(array_sum($taxes));
+        $netTotal = (int) round(array_sum($nets) + array_sum($taxes)) - $taxTotal;
+
+        return [Cents::allocate($netTotal, $nets), Cents::allocate($taxTotal, $taxes)];
     }
 
     /**
