@@ -203,6 +203,19 @@ final class BackOfficeInvoiceTest extends WebIntegrationTestCase
         self::assertStringStartsWith('%PDF', (string) $response->getContent());
         self::assertStringContainsString('factur-x.xml', (string) $response->getContent());
         self::assertStringContainsString('attachment; filename="invoice-', (string) $response->headers->get('Content-Disposition'));
+        self::assertFileDoesNotExist($this->archivePath($order), 'Downloading previews the invoice, issuing it is the POST of the sheet.');
+    }
+
+    public function testDownloadingDoesNotIssueTheInvoiceForAnAdminWhoCanOnlyViewOrders(): void
+    {
+        $this->skipUnlessTheLibraryIsLoaded();
+        $order = $this->paidOrder();
+        $this->loginAs($this->factory->restrictedAdmin([AdminResources::ORDER => [AccessManager::VIEW]]));
+
+        $this->client->request('GET', '/admin/module/FacturX/order/'.$order->getId().'/download');
+
+        self::assertSame(200, $this->client->getResponse()->getStatusCode());
+        self::assertFileDoesNotExist($this->archivePath($order));
     }
 
     public function testAnAdministratorWhoExhaustedTheGenerationBudgetIsTurnedAway(): void

@@ -56,7 +56,7 @@ final class OrderInvoiceController extends BaseAdminController
             return new Response('', Response::HTTP_TOO_MANY_REQUESTS);
         }
 
-        return new Response($renderer->render($order), Response::HTTP_OK, [
+        return new Response($renderer->preview($order), Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => \sprintf('attachment; filename="invoice-%s.pdf"', preg_replace('/[^A-Za-z0-9._-]/', '_', (string) $numberResolver->resolve($order))),
         ]);

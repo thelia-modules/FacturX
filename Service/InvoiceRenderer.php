@@ -34,6 +34,34 @@ readonly class InvoiceRenderer
 
     public function render(Order $order): string
     {
+        return $this->produce($order, fn (callable $generation): mixed => $this->permit->during($generation));
+    }
+
+    /**
+     * Builds the invoice the way render() does, without archiving it: what an archive does not
+     * hold yet is only issued by render().
+     */
+    public function preview(Order $order): string
+    {
+        return $this->produce($order, function (callable $generation): mixed {
+            $wasPreview = $this->permit->isPreview();
+            $this->permit->beginPreview();
+
+            try {
+                return $generation();
+            } finally {
+                if (!$wasPreview) {
+                    $this->permit->endPreview();
+                }
+            }
+        });
+    }
+
+    /**
+     * @param callable(callable): mixed $around
+     */
+    private function produce(Order $order, callable $around): string
+    {
         $fileName = (string) ConfigQuery::read('pdf_invoice_file', 'invoice');
 
         $pdfTemplate = $this->templateHelper->getActivePdfTemplate();
@@ -45,7 +73,7 @@ readonly class InvoiceRenderer
         $event->setFileName($order->getRef());
         $event->setObject($order);
 
-        $this->permit->during(fn () => $this->eventDispatcher->dispatch($event, TheliaEvents::GENERATE_PDF));
+        $around(fn () => $this->eventDispatcher->dispatch($event, TheliaEvents::GENERATE_PDF));
 
         if (!$event->hasPdf()) {
             throw new \RuntimeException(\sprintf('No PDF was produced for order %s.', $order->getRef()));
