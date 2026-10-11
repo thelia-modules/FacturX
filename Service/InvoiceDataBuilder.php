@@ -44,7 +44,7 @@ final readonly class InvoiceDataBuilder
         $isLegacy = ConfigQuery::isOrderWithLegacyRounding($orderId);
         $roundingOfSums = ConfigQuery::ROUNDING_MODE_ROUNDING_OF_SUMS === ConfigQuery::getOrderRoundingMode($orderId);
         $isExempted = $order->getVatExempted();
-        $isShopExempted = '1' === ConfigQuery::read('store_vat_exempt', '0');
+        $isShopExempted = ConfigQuery::isStoreVatExempt();
 
         $lines = $this->buildLines($order, $roundingOfSums, $isExempted, $isShopExempted);
 
@@ -309,8 +309,8 @@ final readonly class InvoiceDataBuilder
 
     private function seller(): InvoiceParty
     {
-        $siret = (string) ConfigQuery::read('store_siret', '');
-        $vatNumber = (string) ConfigQuery::read('store_vat_intracom', '');
+        $siret = ConfigQuery::getStoreSiret();
+        $vatNumber = ConfigQuery::getStoreVatIntracom();
 
         return new InvoiceParty(
             name: (string) ConfigQuery::getStoreName(),
